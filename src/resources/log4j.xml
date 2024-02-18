@@ -41,6 +41,17 @@
         </layout>
     </appender>
 
+    <-- Edit log4j2.xml file if required to view CloudIDP Logging: -->
+
+    <RollingFile name="jwt_log" fileName="../logs/jwt.log" filePattern="../logs/jwt.log.%d{yyyy-MM-dd}">
+       <PatternLayout pattern="%d %p [%t] %c - %m%n"/>
+       <Policies>
+         <TimeBasedTriggeringPolicy interval="1"/>
+       </Policies>
+    </RollingFile>
+    <Logger name="com.db.cidp" additivity="false" level="debug">
+     <AppenderRef ref="jwt_log"/>
+    </Logger>
 
     <!-- ====================== -->
     <!-- Categories             -->
