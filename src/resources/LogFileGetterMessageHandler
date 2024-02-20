@@ -1,0 +1,102 @@
+package com.db.gm.feeds;
+
+import com.test.util.LazyReference;
+import com.test.util.LineFilterReader;
+import com.tet.util.LineQueueReader;
+import com.test.util.ReaderInputStream;
+import org.apache.log4j.Appender;
+import org.apache.log4j.Category;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Logger;
+
+import java.io.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.test.util.FileUtil.searchBackward;
+import static com.test.util.LazyReference.lazy;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.Iterables.getFirst;
+import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.MINUTES;
+
+public class LogFileGetterMessageHandler {
+    private static final String APPENDER_NAME_MSG_ARG = "appenderName";
+    private static final String LIMIT_MSG_ARG = "limit";
+    private static final String LINE_CONTENT_ARG = "lineContent";
+    private static final String FILTER_ARG = "filter";
+    @SuppressWarnings("unchecked")
+    private static final LazyReference<Map<String, FileAppender>> appenders = lazy(() -> {
+        final Map<String, FileAppender> map = new LinkedHashMap<>();
+        List<Category> loggers = asList(
+                Logger.getRootLogger()
+        );
+        loggers.forEach(logger -> {
+            while (logger != null) {
+                Collections.<Appender>list(logger.getAllAppenders()).forEach(appender -> {
+                    if (appender instanceof FileAppender) {
+                        FileAppender fileAppender = (FileAppender) appender;
+                        map.put(fileAppender.getName(), fileAppender);
+                    }
+                });
+                logger = logger.getParent();
+            }
+        });
+        return map;
+    }).expireEvery(10, MINUTES);
+
+    public static InputStream getLogAsStream(String appenderName, int limit, String lineContent, String filter) throws IOException {
+        final String logFileName = getLogFileName(appenderName);
+        final File logFile = new File(logFileName);
+        if (!logFile.exists()) return new ByteArrayInputStream("No log file found at: ".getBytes());
+        BufferedReader reader = new BufferedReader(new FileReader(logFileName));
+        long pos = 0;
+        if (lineContent != null && !lineContent.isEmpty()) {
+            pos = searchBackward(logFile, lineContent);
+            if (pos == -1) {
+                pos = logFile.length() - 1;
+            }
+        }
+        if (pos > 0) {
+            //noinspection ResultOfMethodCallIgnored
+            reader.skip(pos);
+        }
+        if (filter != null && !filter.isEmpty()) {
+            reader = new BufferedReader(new LineFilterReader(reader, filter));
+        }
+        if (limit != 0) {
+            reader = new BufferedReader(new LineQueueReader(reader, limit));
+        }
+        return new ReaderInputStream(reader);
+    }
+
+    private static String getLogFileName(String appenderName) {
+        final Map<String, FileAppender> logFiles = LogFileGetterMessageHandler.appenders.get();
+        final String file;
+        switch (logFiles.size()) {
+            case 0:
+                throw new UnsupportedOperationException("No log files discovered");
+            case 1:
+                file = isNullOrEmpty(appenderName) ?
+                        getFirst(logFiles.values(), null).getFile() :
+                        getFileByAppenderName(appenderName);
+                break;
+            default:
+                checkNotNull(appenderName,
+                        "'" + APPENDER_NAME_MSG_ARG + "' is not specified: unable to automatically choose from " +
+                                logFiles.keySet());
+                file = getFileByAppenderName(appenderName);
+        }
+        return file;
+    }
+
+    private static String getFileByAppenderName(String appenderName) {
+        final FileAppender appender = LogFileGetterMessageHandler.appenders.get().get(appenderName);
+        checkArgument(appender != null, "There is no appender with name '" + appenderName + "'");
+        return appender.getFile();
+    }
+}
