@@ -1,0 +1,13 @@
+Component,details,Estimate/ 1 person
+Tomcat  7.X -> 9.0.X,Rewrite Websocket API of feeds-monitoring and other dependency changes, 4 to 6 weeks
+Zookeeper 3.6.0 -> 3.8.3,Upgrade zookeeper and all adapter and transformer feeds to use latest zk client,2 to 3 weeks
+tfc-zookeeper-utils,,
+Spring framework 3.1.5 -> 5.3.X,Upgrade spring framework,Covered the time with other components
+Cache-ninja-gui web app,Upgrade all 31 dependent vulnerable jars,3 to 4 weeks
+Feeds-admin-console web app,Upgrade all 8 dependent vulnerable jars,2 to 3 weeks
+Gui-proxy web app,Upgrade all 12 dependent vulnerable jars,2 to 3 weeks
+Bre-dfps-service-all,"Upgrade for both pof and protobuf caches, google protobuf, http client and spring core libraries and dependent feeds",2 to 3 weeks
+Bre-rpl-cache-client,Upgrade all vulnerable deps and update all adapter and transformer feeds,4 to 5 weeks
+Log 4j : 1.X -> 2.X,Upgrade all feeds to use latest DB complaint log4j version,3 to 4 weeks
+Tfc-feed-core-all,Upgrade all vulnerable dependent jars and update/test all feeds,4 to 6 weeks
+Kafka-broker-config,Upgrade commons-codec library,1 week
